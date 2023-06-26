@@ -93,7 +93,7 @@ def multinomial(input: torch.Tensor, num_samples: int, replacement=False, *, gen
     return output
 
 
-def sample_top_k(probs: torch.Tensor, k: int) -> torch.Tensor:
+def sample_top_k(probs: torch.Tensor, k: int, generator=None) -> torch.Tensor:
     """Sample next token from top K values along the last dimension of the input probs tensor.
 
     Args:
@@ -106,11 +106,11 @@ def sample_top_k(probs: torch.Tensor, k: int) -> torch.Tensor:
     min_value_top_k = top_k_value[..., [-1]]
     probs *= (probs >= min_value_top_k).float()
     probs.div_(probs.sum(dim=-1, keepdim=True))
-    next_token = multinomial(probs, num_samples=1)
+    next_token = multinomial(probs, num_samples=1, generator=generator)
     return next_token
 
 
-def sample_top_p(probs: torch.Tensor, p: float) -> torch.Tensor:
+def sample_top_p(probs: torch.Tensor, p: float, generator=None) -> torch.Tensor:
     """Sample next token from top P probabilities along the last dimension of the input probs tensor.
 
     Args:
@@ -124,7 +124,7 @@ def sample_top_p(probs: torch.Tensor, p: float) -> torch.Tensor:
     mask = probs_sum - probs_sort > p
     probs_sort *= (~mask).float()
     probs_sort.div_(probs_sort.sum(dim=-1, keepdim=True))
-    next_token = multinomial(probs_sort, num_samples=1)
+    next_token = multinomial(probs_sort, num_samples=1, generator=generator)
     next_token = torch.gather(probs_idx, -1, next_token)
     return next_token
 

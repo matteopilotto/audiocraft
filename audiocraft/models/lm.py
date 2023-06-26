@@ -314,6 +314,7 @@ class LMModel(StreamingModule):
                            temp: float = 1.0,
                            top_k: int = 0,
                            top_p: float = 0.0,
+                           generator=None,
                            cfg_coef: tp.Optional[float] = None) -> torch.Tensor:
         """Sample next token from the model given a sequence and a set of conditions. The model supports
         multiple sampling strategies (greedy sampling, softmax, top-k, top-p...).
@@ -367,11 +368,11 @@ class LMModel(StreamingModule):
         if use_sampling and temp > 0.0:
             probs = torch.softmax(logits / temp, dim=-1)
             if top_p > 0.0:
-                next_token = utils.sample_top_p(probs, p=top_p)
+                next_token = utils.sample_top_p(probs, p=top_p, generator=generator)
             elif top_k > 0:
-                next_token = utils.sample_top_k(probs, k=top_k)
+                next_token = utils.sample_top_k(probs, k=top_k, generator=generator)
             else:
-                next_token = utils.multinomial(probs, num_samples=1)
+                next_token = utils.multinomial(probs, num_samples=1, generator=generator)
         else:
             next_token = torch.argmax(logits, dim=-1, keepdim=True)
 
@@ -391,6 +392,7 @@ class LMModel(StreamingModule):
                  two_step_cfg: bool = False,
                  remove_prompts: bool = False,
                  check: bool = False,
+                 generator=None,
                  callback: tp.Optional[tp.Callable[[int, int], None]] = None) -> torch.Tensor:
         """Generate tokens sampling from the model given a prompt or unconditionally. Generation can
         be perform in a greedy fashion or using sampling with top K and top P strategies.
@@ -488,7 +490,7 @@ class LMModel(StreamingModule):
                     assert not (curr_sequence == unknown_token).any()
                 # sample next token from the model, next token shape is [B, K, 1]
                 next_token = self._sample_next_token(
-                    curr_sequence, cfg_conditions, unconditional_state, use_sampling, temp, top_k, top_p,
+                    curr_sequence, cfg_conditions, unconditional_state, use_sampling, temp, top_k, top_p, generator,
                     cfg_coef=cfg_coef)
                 # ensure the tokens that should be masked are properly set to special_token_id
                 # as the model never output special_token_id
